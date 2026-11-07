@@ -1,6 +1,6 @@
 # Cloudflare TURN for Home Assistant
 
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories/)
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://www.home-assistant.io/integrations/marketplace)
 [![Validate](https://github.com/luiscast84/ha-cloudflare-turn/actions/workflows/validate.yml/badge.svg)](https://github.com/luiscast84/ha-cloudflare-turn/actions/workflows/validate.yml)
 [![Tests](https://github.com/luiscast84/ha-cloudflare-turn/actions/workflows/tests.yml/badge.svg)](https://github.com/luiscast84/ha-cloudflare-turn/actions/workflows/tests.yml)
 
@@ -30,11 +30,20 @@ Cloudflare bills TURN only for data it relays to the clients, and only when the 
 
 ## Installation
 
-### HACS
+[![Open your Home Assistant instance and open this repository in the Marketplace or HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=luiscast84&repository=ha-cloudflare-turn&category=integration)
 
-1. Open HACS, then **⋮ → Custom repositories**.
-2. Add `https://github.com/luiscast84/ha-cloudflare-turn` with the type **Integration**.
-3. Find **Cloudflare TURN** in HACS, download it, and restart Home Assistant.
+### Marketplace (Home Assistant 2026.11 and newer)
+
+Home Assistant 2026.11 built HACS in as the **Marketplace**.
+
+1. Select the button above. Or open **Marketplace**, go to **Custom repositories**, and add `https://github.com/luiscast84/ha-cloudflare-turn` with the type **Integration**. The first time, the Marketplace asks you to read and accept its warning.
+2. Open **Cloudflare TURN** and select **Install**.
+3. Restart Home Assistant when Repairs shows **Restart required for Cloudflare TURN**.
+
+### HACS (Home Assistant 2026.1 to 2026.10)
+
+1. Select the button above. Or open HACS, then **⋮ → Custom repositories**, and add `https://github.com/luiscast84/ha-cloudflare-turn` with the type **Integration**.
+2. Find **Cloudflare TURN** in HACS, download it, and restart Home Assistant.
 
 ### Manually
 
