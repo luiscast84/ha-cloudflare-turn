@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from datetime import timedelta
 import logging
+from unittest.mock import patch
 
 from freezegun.api import FrozenDateTimeFactory
 import pytest
@@ -28,8 +29,10 @@ from custom_components.cloudflare_turn.const import (
 )
 from custom_components.cloudflare_turn.coordinator import CloudflareTurnCoordinator
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
-from homeassistant.core import HomeAssistant
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
+from homeassistant.core import CoreState, HomeAssistant
 from homeassistant.helpers import entity_registry as er, issue_registry as ir
+from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 
 from .conftest import (
@@ -334,14 +337,17 @@ async def test_unload_during_refresh_leaves_no_timer(
     cloudflare: FakeCloudflare,
     mock_config_entry: MockConfigEntry,
     freezer: FrozenDateTimeFactory,
+    issue_registry: ir.IssueRegistry,
 ) -> None:
-    """A refresh that finishes after unloading schedules nothing more."""
+    """A refresh that fails after unloading schedules and reports nothing."""
     freezer.move_to(START)
     await setup_integration(hass, mock_config_entry)
     coordinator = coordinator_of(mock_config_entry)
     cloudflare.gate = asyncio.Event()
+    cloudflare.error = CloudflareTurnConnectionError("offline")
 
-    freezer.tick(timedelta(hours=12))
+    # 23 hours left when this refresh fails: it would raise a Repairs issue.
+    freezer.tick(timedelta(hours=25))
     async_fire_time_changed(hass)
     await asyncio.sleep(0)
     assert len(cloudflare.calls) == 2
@@ -350,7 +356,186 @@ async def test_unload_during_refresh_leaves_no_timer(
     await hass.async_block_till_done()
 
     assert coordinator._unsub_timer is None
+    assert coordinator._unsub_issue_timer is None
+    assert issue_registry.async_get_issue(DOMAIN, ISSUE_REFRESH_FAILING) is None
     await advance(hass, freezer, timedelta(days=3))
+    assert len(cloudflare.calls) == 2
+
+
+async def test_manual_refresh_follows_the_schedule(
+    hass: HomeAssistant,
+    cloudflare: FakeCloudflare,
+    mock_config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Refreshing the sensor by hand starts the backoff, and a success resets it."""
+    freezer.move_to(START)
+    assert await async_setup_component(hass, "homeassistant", {})
+    await setup_integration(hass, mock_config_entry)
+    coordinator = coordinator_of(mock_config_entry)
+
+    cloudflare.error = CloudflareTurnAuthError("revoked")
+    await hass.services.async_call(
+        "homeassistant",
+        "update_entity",
+        {"entity_id": "sensor.cloudflare_turn_credential_expiry"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert coordinator.failures == 1
+    assert coordinator.next_refresh == dt_util.utcnow() + timedelta(minutes=1)
+    assert len(reauth_flows(hass)) == 1
+
+    # Let the entity's refresh cooldown (10 s) pass first.
+    cloudflare.error = None
+    freezer.tick(timedelta(seconds=30))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    await hass.services.async_call(
+        "homeassistant",
+        "update_entity",
+        {"entity_id": "sensor.cloudflare_turn_credential_expiry"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert coordinator.failures == 0
+    assert coordinator.next_refresh == dt_util.utcnow() + timedelta(hours=12)
+    assert reauth_flows(hass) == []
+
+
+async def test_no_request_while_home_assistant_stops(
+    hass: HomeAssistant,
+    cloudflare: FakeCloudflare,
+    mock_config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """A refresh that comes due during shutdown doesn't call Cloudflare."""
+    freezer.move_to(START)
+    await setup_integration(hass, mock_config_entry)
+    coordinator = coordinator_of(mock_config_entry)
+
+    hass.set_state(CoreState.stopping)
+    try:
+        await advance(hass, freezer, timedelta(hours=12))
+        assert len(cloudflare.calls) == 1
+        coordinator._async_schedule_refresh()
+        assert coordinator._unsub_timer is None
+    finally:
+        hass.set_state(CoreState.running)
+
+
+async def test_stop_event_cancels_timers(
+    hass: HomeAssistant,
+    cloudflare: FakeCloudflare,
+    mock_config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Home Assistant stopping cancels the refresh and Repairs timers."""
+    freezer.move_to(START)
+    await setup_integration(hass, mock_config_entry)
+    coordinator = coordinator_of(mock_config_entry)
+    cloudflare.error = CloudflareTurnConnectionError("offline")
+    await advance(hass, freezer, timedelta(hours=12))
+    assert coordinator._unsub_timer is not None
+    assert coordinator._unsub_issue_timer is not None
+
+    hass.bus.async_fire(EVENT_HOMEASSISTANT_STOP)
+    await hass.async_block_till_done()
+
+    assert coordinator._unsub_timer is None
+    assert coordinator._unsub_issue_timer is None
+    assert await hass.config_entries.async_unload(mock_config_entry.entry_id)
+
+
+async def test_stop_event_drops_a_queued_manual_refresh(
+    hass: HomeAssistant,
+    cloudflare: FakeCloudflare,
+    mock_config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """A manual refresh waiting out the cooldown doesn't run after stopping."""
+    freezer.move_to(START)
+    assert await async_setup_component(hass, "homeassistant", {})
+    await setup_integration(hass, mock_config_entry)
+    for _ in range(2):
+        await hass.services.async_call(
+            "homeassistant",
+            "update_entity",
+            {"entity_id": "sensor.cloudflare_turn_credential_expiry"},
+            blocking=True,
+        )
+    await hass.async_block_till_done()
+    assert len(cloudflare.calls) == 2
+
+    hass.bus.async_fire(EVENT_HOMEASSISTANT_STOP)
+    await hass.async_block_till_done()
+    await advance(hass, freezer, timedelta(seconds=30))
+
+    assert len(cloudflare.calls) == 2
+
+
+async def test_repairs_deadlines_without_attempts(
+    hass: HomeAssistant,
+    cloudflare: FakeCloudflare,
+    mock_config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+    issue_registry: ir.IssueRegistry,
+) -> None:
+    """Repairs follows the deadlines even while Retry-After spaces out attempts."""
+    freezer.move_to(START)
+    await setup_integration(hass, mock_config_entry)
+    cloudflare.error = CloudflareTurnRateLimitError(timedelta(hours=5, minutes=30))
+
+    # Attempts at +12, +17.5 and +23 hours: more than 24 hours left each time.
+    await advance(hass, freezer, timedelta(hours=12))
+    await advance(hass, freezer, timedelta(hours=5, minutes=30))
+    await advance(hass, freezer, timedelta(hours=5, minutes=30))
+    assert len(cloudflare.calls) == 4
+    assert issue_registry.async_get_issue(DOMAIN, ISSUE_REFRESH_FAILING) is None
+
+    # +24 hours: no attempt is due, yet the warning appears on time.
+    await advance(hass, freezer, timedelta(hours=1))
+    assert len(cloudflare.calls) == 4
+    issue = issue_registry.async_get_issue(DOMAIN, ISSUE_REFRESH_FAILING)
+    assert issue is not None
+    assert issue.severity is ir.IssueSeverity.WARNING
+
+    # Attempts at +28.5, +34, +39.5 and +45 hours keep the warning.
+    await advance(hass, freezer, timedelta(hours=4, minutes=30))
+    for _ in range(3):
+        await advance(hass, freezer, timedelta(hours=5, minutes=30))
+    assert len(cloudflare.calls) == 8
+    issue = issue_registry.async_get_issue(DOMAIN, ISSUE_REFRESH_FAILING)
+    assert issue is not None
+    assert issue.severity is ir.IssueSeverity.WARNING
+
+    # +47 hours, one hour left: it turns into an error without an attempt.
+    await advance(hass, freezer, timedelta(hours=2))
+    assert len(cloudflare.calls) == 8
+    issue = issue_registry.async_get_issue(DOMAIN, ISSUE_REFRESH_FAILING)
+    assert issue is not None
+    assert issue.severity is ir.IssueSeverity.ERROR
+    assert turn_servers(hass) == []
+
+
+async def test_failed_unload_keeps_refreshing(
+    hass: HomeAssistant,
+    cloudflare: FakeCloudflare,
+    mock_config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """If the sensor can't be unloaded, the relay and its refreshes carry on."""
+    freezer.move_to(START)
+    await setup_integration(hass, mock_config_entry)
+
+    with patch.object(
+        hass.config_entries, "async_unload_platforms", return_value=False
+    ):
+        assert not await hass.config_entries.async_unload(mock_config_entry.entry_id)
+
+    assert mock_config_entry.state is ConfigEntryState.FAILED_UNLOAD
+    assert len(turn_servers(hass)) == 1
+    await advance(hass, freezer, timedelta(hours=12))
     assert len(cloudflare.calls) == 2
 
 

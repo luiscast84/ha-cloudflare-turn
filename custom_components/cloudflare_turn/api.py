@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
 from http import HTTPStatus
+import ipaddress
 import re
 from typing import Any
 from urllib.parse import quote
@@ -26,6 +27,7 @@ _TURN_URL = re.compile(
     r"(?P<scheme>turns?):(?P<host>[A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])"
     r"(?::(?P<port>\d{1,5}))?(?:\?transport=(?P<transport>udp|tcp))?"
 )
+_DNS_LABEL = re.compile(r"(?!-)[A-Za-z0-9-]{1,63}(?<!-)")
 _DEFAULT_PORTS = {"turn": 3478, "turns": 5349}
 _SKIPPED_PORTS = frozenset({53})
 _REDACTED = "**REDACTED**"
@@ -229,7 +231,7 @@ def _parse_credentials(
 
 def _parse_turn_url(url: str) -> TurnUrl | None:
     """Return a TURN URL with its transport, or None if it can't be used."""
-    if (match := _TURN_URL.fullmatch(url)) is None:
+    if (match := _TURN_URL.fullmatch(url)) is None or not _valid_host(match["host"]):
         return None
     scheme = match["scheme"]
     port = int(match["port"]) if match["port"] else _DEFAULT_PORTS[scheme]
@@ -241,3 +243,24 @@ def _parse_turn_url(url: str) -> TurnUrl | None:
         return None
     protocol = "tls" if scheme == "turns" else transport
     return TurnUrl(url, f"{protocol}_{port}")
+
+
+def _valid_host(host: str) -> bool:
+    """Accept an IPv6 literal, an IPv4 address or a well-formed DNS name.
+
+    Browsers refuse the whole peer connection over a host they can't parse.
+    """
+    if host.startswith("["):
+        try:
+            ipaddress.IPv6Address(host[1:-1])
+        except ValueError:
+            return False
+        return True
+    labels = host.split(".")
+    if all(label.isdigit() for label in labels):
+        try:
+            ipaddress.IPv4Address(host)
+        except ValueError:
+            return False
+        return True
+    return len(host) <= 253 and all(_DNS_LABEL.fullmatch(label) for label in labels)

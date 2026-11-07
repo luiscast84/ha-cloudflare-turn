@@ -32,7 +32,7 @@ async def async_setup_entry(
     )
     coordinator = CloudflareTurnCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
-    coordinator.async_schedule_refresh()
+    coordinator.async_start()
     entry.runtime_data = coordinator
     entry.async_on_unload(
         async_register_ice_servers(hass, coordinator.async_get_ice_servers)
@@ -45,5 +45,8 @@ async def async_unload_entry(
     hass: HomeAssistant, entry: CloudflareTurnConfigEntry
 ) -> bool:
     """Stop offering the relay and stop refreshing."""
-    ir.async_delete_issue(hass, DOMAIN, ISSUE_REFRESH_FAILING)
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        # Stop first, so a refresh finishing now can't raise the issue again.
+        await entry.runtime_data.async_shutdown()
+        ir.async_delete_issue(hass, DOMAIN, ISSUE_REFRESH_FAILING)
+    return unload_ok

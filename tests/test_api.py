@@ -252,6 +252,16 @@ def test_bad_payloads(payload: Any, message: str) -> None:
         ("turn:turn.cloudflare.com:3478?transport=sctp", None),
         ("turn:turn.cloudflare.com:3478 ", None),
         ("stun:stun.cloudflare.com:3478", None),
+        ("turn:192.0.2.1:3478", "udp_3478"),
+        ("turn:...:3478?transport=udp", None),
+        ("turn:[::::]:3478?transport=udp", None),
+        ("turn:-bad.example:3478", None),
+        ("turn:bad-.example:3478", None),
+        ("turn:a..b:3478", None),
+        ("turn:999.1.1.1:3478", None),
+        ("turn:1.2.3:3478", None),
+        (f"turn:{'a' * 64}.example:3478", None),
+        (f"turn:{'.'.join(['abcdefgh'] * 30)}:3478", None),
     ],
 )
 def test_url_parsing(url: str, transport: str | None) -> None:

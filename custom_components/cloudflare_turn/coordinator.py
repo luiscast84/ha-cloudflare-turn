@@ -8,7 +8,8 @@ import logging
 from webrtc_models import RTCIceServer
 
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntry
-from homeassistant.core import CALLBACK_TYPE, HassJob, HomeAssistant, callback
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
+from homeassistant.core import CALLBACK_TYPE, Event, HassJob, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.event import async_call_later
@@ -73,13 +74,13 @@ class CloudflareTurnCoordinator(DataUpdateCoordinator[TurnCredentials]):
         self.last_error: str | None = None
         self.auth_failed = False
         self._wait_requested: timedelta | None = None
-        self._unsub_timer: CALLBACK_TYPE | None = None
+        self._started = False
         self._stopped = False
-        self._timer_job = HassJob(
-            self._async_timer_fired,
-            f"{TITLE} credential refresh",
-            cancel_on_shutdown=True,
-        )
+        self._unsub_timer: CALLBACK_TYPE | None = None
+        self._unsub_issue_timer: CALLBACK_TYPE | None = None
+        self._unsub_stop: CALLBACK_TYPE | None = None
+        self._timer_job = HassJob(self._async_timer_fired, f"{TITLE} refresh")
+        self._issue_job = HassJob(self._async_issue_timer_fired, f"{TITLE} issue")
 
     async def _async_update_data(self) -> TurnCredentials:
         """Ask Cloudflare for new credentials."""
@@ -132,10 +133,31 @@ class CloudflareTurnCoordinator(DataUpdateCoordinator[TurnCredentials]):
         )
 
     @callback
-    def async_schedule_refresh(self) -> None:
+    def async_start(self) -> None:
+        """Start the refresh schedule once the first credentials are in."""
+        self._started = True
+        # Home Assistant's shutdown doesn't cancel timers made by async_call_later.
+        self._unsub_stop = self.hass.bus.async_listen_once(
+            EVENT_HOMEASSISTANT_STOP, self._async_hass_stopping
+        )
+        self._async_schedule_refresh()
+
+    async def _async_hass_stopping(self, _event: Event) -> None:
+        """Stop everything, including a refresh queued by the base class."""
+        self._unsub_stop = None
+        await self.async_shutdown()
+
+    @callback
+    def _async_refresh_finished(self) -> None:
+        """Plan the next refresh after every refresh, however it was started."""
+        if self._started:
+            self._async_schedule_refresh()
+
+    @callback
+    def _async_schedule_refresh(self) -> None:
         """Plan the next refresh from the outcome of the last one."""
         self._async_cancel_timer()
-        if self._stopped:
+        if self._stopped or self.hass.is_stopping:
             return
         now = dt_util.utcnow()
         if self.last_update_success:
@@ -154,18 +176,23 @@ class CloudflareTurnCoordinator(DataUpdateCoordinator[TurnCredentials]):
                 delay = min(max(delay, self._wait_requested), RATE_LIMIT_MAX)
         self.next_refresh = now + delay
         self._unsub_timer = async_call_later(self.hass, delay, self._timer_job)
-        self._async_update_issue(now)
+        self._async_update_issue()
 
     async def _async_timer_fired(self, _now: datetime) -> None:
         """Refresh the credentials when the timer fires."""
         self._unsub_timer = None
-        await self.async_refresh()
-        self.async_schedule_refresh()
+        # A timer that comes due while Home Assistant stops must not call Cloudflare.
+        if not self.hass.is_stopping:
+            await self.async_refresh()
 
     async def async_shutdown(self) -> None:
-        """Stop refreshing when the entry is unloaded."""
+        """Stop refreshing and reporting when the entry is unloaded."""
         self._stopped = True
+        if self._unsub_stop is not None:
+            self._unsub_stop()
+            self._unsub_stop = None
         self._async_cancel_timer()
+        self._async_cancel_issue_timer()
         await super().async_shutdown()
 
     @callback
@@ -173,6 +200,12 @@ class CloudflareTurnCoordinator(DataUpdateCoordinator[TurnCredentials]):
         if self._unsub_timer is not None:
             self._unsub_timer()
             self._unsub_timer = None
+
+    @callback
+    def _async_cancel_issue_timer(self) -> None:
+        if self._unsub_issue_timer is not None:
+            self._unsub_issue_timer()
+            self._unsub_issue_timer = None
 
     @callback
     def _async_abort_reauth_flows(self) -> None:
@@ -183,13 +216,29 @@ class CloudflareTurnCoordinator(DataUpdateCoordinator[TurnCredentials]):
             self.hass.config_entries.flow.async_abort(flow["flow_id"])
 
     @callback
-    def _async_update_issue(self, now: datetime) -> None:
-        """Report in Repairs when failing refreshes put the relay at risk."""
+    def _async_issue_timer_fired(self, _now: datetime) -> None:
+        """Re-check the Repairs issue at a deadline, without asking Cloudflare."""
+        self._unsub_issue_timer = None
+        self._async_update_issue()
+
+    @callback
+    def _async_update_issue(self) -> None:
+        """Report in Repairs when failing refreshes put the relay at risk.
+
+        Re-checked at each deadline (24 hours and one hour left), so the issue is
+        right even while a long Retry-After delays the next attempt.
+        """
+        self._async_cancel_issue_timer()
+        now = dt_util.utcnow()
         credentials = self.data
         left = credentials.expires_at - now
-        if self.last_update_success or self.auth_failed or left > ISSUE_WHEN_LEFT:
+        if self.last_update_success or self.auth_failed:
             # An authentication failure has its own reauthentication notice.
             ir.async_delete_issue(self.hass, DOMAIN, ISSUE_REFRESH_FAILING)
+            return
+        if left > ISSUE_WHEN_LEFT:
+            ir.async_delete_issue(self.hass, DOMAIN, ISSUE_REFRESH_FAILING)
+            self._async_check_issue_in(left - ISSUE_WHEN_LEFT)
             return
         expired = left <= EXPIRY_MARGIN
         ir.async_create_issue(
@@ -208,6 +257,12 @@ class CloudflareTurnCoordinator(DataUpdateCoordinator[TurnCredentials]):
                 "status_url": STATUS_URL,
             },
         )
+        if not expired:
+            self._async_check_issue_in(left - EXPIRY_MARGIN)
+
+    @callback
+    def _async_check_issue_in(self, delay: timedelta) -> None:
+        self._unsub_issue_timer = async_call_later(self.hass, delay, self._issue_job)
 
 
 def _local_time(value: datetime) -> str:
