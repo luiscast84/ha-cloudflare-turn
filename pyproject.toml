@@ -1,0 +1,63 @@
+[project]
+name = "ha-cloudflare-turn"
+version = "0.1.0"
+description = "Home Assistant integration that relays WebRTC camera streams through Cloudflare's TURN service, with self-renewing credentials."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.13"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = [
+  "A", "ASYNC", "B", "BLE", "C4", "D", "DTZ", "E", "F", "FLY", "G", "I", "ICN",
+  "INP", "ISC", "LOG", "N", "PERF", "PGH", "PIE", "PL", "PT", "PTH", "RET", "RSE",
+  "RUF", "S", "SIM", "SLF", "T20", "TC", "TID", "TRY", "UP", "W",
+]
+ignore = [
+  "D202",    # blank line after a function docstring
+  "D203",    # conflicts with D211
+  "D213",    # conflicts with D212
+  "E501",    # line length is the formatter's job
+  "PLR2004", # magic values read better in tests and constants
+  "TC001",   # typing-only imports stay at the top: the modules are loaded anyway
+  "TC002",
+  "TC003",
+  "TRY003",  # messages belong in exceptions here
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S105", "SLF001", "PLR0913", "PLR0917"]
+"script/*" = ["T201", "INP001", "S101"]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+known-first-party = ["custom_components", "homeassistant"]
+combine-as-imports = true
+split-on-trailing-comma = false
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unreachable = true
+files = ["custom_components"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "--cov --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["custom_components"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true

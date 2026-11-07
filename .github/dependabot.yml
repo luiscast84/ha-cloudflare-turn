@@ -1,0 +1,12 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  # Only the root requirements: ci/requirements_min.txt pins the oldest
+  # supported Home Assistant on purpose.
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly

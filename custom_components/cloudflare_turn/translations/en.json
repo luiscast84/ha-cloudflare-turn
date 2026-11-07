@@ -1,0 +1,110 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Cloudflare TURN key",
+        "description": "Lets camera streams relay through Cloudflare when no direct connection is possible: away from home, on mobile data or behind a VPN.\n\nIn the [Cloudflare dashboard]({dashboard_url}), go to **Realtime → TURN**, create a TURN key, and copy its **TURN Token ID** and **API token** here. The key stays in Home Assistant: apps and go2rtc only get credentials that expire within 48 hours.",
+        "data": {
+          "key_id": "TURN Token ID",
+          "api_token": "API token"
+        },
+        "data_description": {
+          "key_id": "The ID of your TURN key.",
+          "api_token": "The secret Cloudflare shows once, when the key is created. If you lost it, create a new key."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Cloudflare rejected the TURN key",
+        "description": "Enter the TURN key again. If you deleted or replaced it in the [Cloudflare dashboard]({dashboard_url}), enter the new key's TURN Token ID and API token.",
+        "data": {
+          "key_id": "TURN Token ID",
+          "api_token": "API token"
+        },
+        "data_description": {
+          "key_id": "The ID of your TURN key.",
+          "api_token": "The secret Cloudflare shows once, when the key is created. If you lost it, create a new key."
+        }
+      },
+      "reconfigure": {
+        "title": "Change the TURN key",
+        "description": "Enter the TURN Token ID and API token of the key to use from now on. You manage TURN keys in the [Cloudflare dashboard]({dashboard_url}).",
+        "data": {
+          "key_id": "TURN Token ID",
+          "api_token": "API token"
+        },
+        "data_description": {
+          "key_id": "The ID of your TURN key.",
+          "api_token": "The secret Cloudflare shows once, when the key is created. If you lost it, create a new key."
+        }
+      }
+    },
+    "error": {
+      "invalid_key_id": "This doesn't look like a TURN Token ID. Copy it again from the Cloudflare dashboard.",
+      "key_not_found": "Cloudflare doesn't know this TURN Token ID. Check it, or create a new TURN key.",
+      "invalid_auth": "Cloudflare rejected this API token. Copy it again, or create a new TURN key.",
+      "rate_limited": "Cloudflare is limiting requests right now. Wait a minute and try again.",
+      "cannot_connect": "Can't reach Cloudflare. Check Home Assistant's internet connection.",
+      "unexpected_response": "Cloudflare sent a response this integration doesn't understand. Try again later, and report it if it keeps happening.",
+      "unknown": "Unexpected error. Details are in the Home Assistant logs."
+    },
+    "abort": {
+      "single_instance_allowed": "Cloudflare TURN is already set up. To use another key, choose Reconfigure on the existing entry.",
+      "reauth_successful": "The TURN key works again.",
+      "reconfigure_successful": "The new TURN key is in use."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Relay transports",
+        "description": "Choose how the apps and go2rtc may reach Cloudflare's relay. Every transport adds a little setup work to each stream, so choose only what you need. The defaults suit most homes: UDP 3478 is the fastest, and TLS 443 gets through almost any firewall or VPN.",
+        "data": {
+          "transports": "Transports"
+        }
+      }
+    },
+    "error": {
+      "no_transports": "Choose at least one transport."
+    }
+  },
+  "selector": {
+    "transports": {
+      "options": {
+        "udp_3478": "UDP 3478 (fastest)",
+        "udp_443": "UDP 443",
+        "tcp_3478": "TCP 3478",
+        "tcp_80": "TCP 80",
+        "tls_5349": "TLS 5349",
+        "tls_443": "TLS 443 (gets through firewalls and VPNs)"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "credentials_expire": {
+        "name": "Credential expiry"
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_auth": {
+      "message": "Cloudflare rejected the TURN key's API token."
+    },
+    "key_not_found": {
+      "message": "Cloudflare doesn't know the TURN key's TURN Token ID. The key may have been deleted."
+    },
+    "refresh_failed": {
+      "message": "Couldn't refresh the Cloudflare TURN credentials: {error}"
+    }
+  },
+  "issues": {
+    "refresh_failing": {
+      "title": "Cloudflare TURN credentials aren't being refreshed",
+      "description": "Home Assistant hasn't been able to get new TURN credentials from Cloudflare since {since}. The current ones work until {expires}. After that, camera streams that need the relay, for example away from home or behind a VPN, won't connect.\n\nLast error: {error}\n\nCheck Home Assistant's internet connection and [Cloudflare's status page]({status_url}). Home Assistant keeps retrying, and this notice goes away by itself once it succeeds."
+    },
+    "refresh_failing_expired": {
+      "title": "Cloudflare TURN relay unavailable",
+      "description": "Home Assistant hasn't been able to get new TURN credentials from Cloudflare since {since}, and the last ones expire at {expires}, too soon to hand out. Camera streams that need the relay, for example away from home or behind a VPN, won't connect until a refresh succeeds.\n\nLast error: {error}\n\nCheck Home Assistant's internet connection and [Cloudflare's status page]({status_url}). Home Assistant keeps retrying, and this notice goes away by itself once it succeeds."
+    }
+  }
+}

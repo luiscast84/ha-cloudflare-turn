@@ -1,0 +1,110 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Clave TURN de Cloudflare",
+        "description": "Permite que el vídeo de las cámaras pase por Cloudflare cuando no hay conexión directa: fuera de casa, con datos móviles o detrás de una VPN.\n\nEn el [panel de Cloudflare]({dashboard_url}), ve a **Realtime → TURN**, crea una clave TURN y copia aquí su **TURN Token ID** y su **API token**. La clave se queda en Home Assistant: las apps y go2rtc solo reciben credenciales que caducan en 48 horas como mucho.",
+        "data": {
+          "key_id": "TURN Token ID",
+          "api_token": "API token"
+        },
+        "data_description": {
+          "key_id": "El identificador de tu clave TURN.",
+          "api_token": "El secreto que Cloudflare muestra una sola vez, al crear la clave. Si lo has perdido, crea una clave nueva."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Cloudflare ha rechazado la clave TURN",
+        "description": "Vuelve a introducir la clave TURN. Si la borraste o la cambiaste en el [panel de Cloudflare]({dashboard_url}), introduce el TURN Token ID y el API token de la nueva.",
+        "data": {
+          "key_id": "TURN Token ID",
+          "api_token": "API token"
+        },
+        "data_description": {
+          "key_id": "El identificador de tu clave TURN.",
+          "api_token": "El secreto que Cloudflare muestra una sola vez, al crear la clave. Si lo has perdido, crea una clave nueva."
+        }
+      },
+      "reconfigure": {
+        "title": "Cambiar la clave TURN",
+        "description": "Introduce el TURN Token ID y el API token de la clave que quieres usar a partir de ahora. Las claves TURN se gestionan en el [panel de Cloudflare]({dashboard_url}).",
+        "data": {
+          "key_id": "TURN Token ID",
+          "api_token": "API token"
+        },
+        "data_description": {
+          "key_id": "El identificador de tu clave TURN.",
+          "api_token": "El secreto que Cloudflare muestra una sola vez, al crear la clave. Si lo has perdido, crea una clave nueva."
+        }
+      }
+    },
+    "error": {
+      "invalid_key_id": "Esto no parece un TURN Token ID. Cópialo otra vez del panel de Cloudflare.",
+      "key_not_found": "Cloudflare no conoce este TURN Token ID. Revísalo o crea una clave TURN nueva.",
+      "invalid_auth": "Cloudflare ha rechazado este API token. Cópialo otra vez o crea una clave TURN nueva.",
+      "rate_limited": "Cloudflare está limitando las peticiones ahora mismo. Espera un minuto y vuelve a intentarlo.",
+      "cannot_connect": "No se puede conectar con Cloudflare. Revisa la conexión a internet de Home Assistant.",
+      "unexpected_response": "Cloudflare ha enviado una respuesta que esta integración no entiende. Inténtalo más tarde y, si sigue pasando, avísanos.",
+      "unknown": "Error inesperado. Tienes los detalles en los registros de Home Assistant."
+    },
+    "abort": {
+      "single_instance_allowed": "Cloudflare TURN ya está configurado. Para usar otra clave, elige Reconfigurar en la entrada que ya existe.",
+      "reauth_successful": "La clave TURN vuelve a funcionar.",
+      "reconfigure_successful": "Ya se usa la nueva clave TURN."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Transportes del relé",
+        "description": "Elige cómo pueden llegar las apps y go2rtc al relé de Cloudflare. Cada transporte añade un poco de trabajo al arrancar cada vídeo, así que elige solo los que necesites. Los de serie sirven para casi todas las casas: UDP 3478 es el más rápido y TLS 443 atraviesa casi cualquier cortafuegos o VPN.",
+        "data": {
+          "transports": "Transportes"
+        }
+      }
+    },
+    "error": {
+      "no_transports": "Elige al menos un transporte."
+    }
+  },
+  "selector": {
+    "transports": {
+      "options": {
+        "udp_3478": "UDP 3478 (el más rápido)",
+        "udp_443": "UDP 443",
+        "tcp_3478": "TCP 3478",
+        "tcp_80": "TCP 80",
+        "tls_5349": "TLS 5349",
+        "tls_443": "TLS 443 (atraviesa cortafuegos y VPN)"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "credentials_expire": {
+        "name": "Caducidad de las credenciales"
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_auth": {
+      "message": "Cloudflare ha rechazado el API token de la clave TURN."
+    },
+    "key_not_found": {
+      "message": "Cloudflare no conoce el TURN Token ID de la clave TURN. Puede que la hayan borrado."
+    },
+    "refresh_failed": {
+      "message": "No se han podido renovar las credenciales TURN de Cloudflare: {error}"
+    }
+  },
+  "issues": {
+    "refresh_failing": {
+      "title": "No se renuevan las credenciales TURN de Cloudflare",
+      "description": "Home Assistant no consigue nuevas credenciales TURN de Cloudflare desde {since}. Las actuales sirven hasta {expires}. A partir de entonces no conectará el vídeo de las cámaras que necesite el relé, por ejemplo fuera de casa o detrás de una VPN.\n\nÚltimo error: {error}\n\nRevisa la conexión a internet de Home Assistant y la [página de estado de Cloudflare]({status_url}). Home Assistant sigue reintentándolo, y este aviso desaparece solo en cuanto lo consigue."
+    },
+    "refresh_failing_expired": {
+      "title": "El relé TURN de Cloudflare no está disponible",
+      "description": "Home Assistant no consigue nuevas credenciales TURN de Cloudflare desde {since}, y las últimas caducan el {expires}, demasiado pronto para repartirlas. El vídeo de las cámaras que necesite el relé, por ejemplo fuera de casa o detrás de una VPN, no conectará hasta que una renovación funcione.\n\nÚltimo error: {error}\n\nRevisa la conexión a internet de Home Assistant y la [página de estado de Cloudflare]({status_url}). Home Assistant sigue reintentándolo, y este aviso desaparece solo en cuanto lo consigue."
+    }
+  }
+}

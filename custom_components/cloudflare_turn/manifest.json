@@ -1,0 +1,14 @@
+{
+  "domain": "cloudflare_turn",
+  "name": "Cloudflare TURN",
+  "codeowners": ["@luiscast84"],
+  "config_flow": true,
+  "dependencies": ["web_rtc"],
+  "documentation": "https://github.com/luiscast84/ha-cloudflare-turn",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/luiscast84/ha-cloudflare-turn/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "0.1.0"
+}

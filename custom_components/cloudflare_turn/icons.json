@@ -1,0 +1,9 @@
+{
+  "entity": {
+    "sensor": {
+      "credentials_expire": {
+        "default": "mdi:key-chain-variant"
+      }
+    }
+  }
+}

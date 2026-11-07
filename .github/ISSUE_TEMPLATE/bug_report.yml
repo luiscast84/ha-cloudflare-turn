@@ -1,0 +1,40 @@
+name: Bug report
+description: Something doesn't work as described.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Never paste your TURN key's API token here. Diagnostics from the integration are safe to attach: they redact the key and every credential.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: What you expected, what happened instead, and where (home Wi-Fi, mobile data, a VPN...).
+    validations:
+      required: true
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      placeholder: "2026.11.0"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Cloudflare TURN version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Settings → Devices & services → Cloudflare TURN → ⋮ → Download diagnostics. Attach the file.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Lines from the Home Assistant log that mention cloudflare_turn.
+      render: text
