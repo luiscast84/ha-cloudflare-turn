@@ -1,6 +1,6 @@
 # Cloudflare TURN for Home Assistant
 
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://www.home-assistant.io/integrations/marketplace)
+[![Marketplace and HACS: custom repository](https://img.shields.io/badge/Marketplace%20%7C%20HACS-custom%20repository-41BDF5.svg)](https://www.home-assistant.io/integrations/marketplace)
 [![Validate](https://github.com/luiscast84/ha-cloudflare-turn/actions/workflows/validate.yml/badge.svg)](https://github.com/luiscast84/ha-cloudflare-turn/actions/workflows/validate.yml)
 [![Tests](https://github.com/luiscast84/ha-cloudflare-turn/actions/workflows/tests.yml/badge.svg)](https://github.com/luiscast84/ha-cloudflare-turn/actions/workflows/tests.yml)
 
