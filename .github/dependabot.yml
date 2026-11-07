@@ -4,8 +4,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
-  # Only the root requirements: ci/requirements_min.txt pins the oldest
-  # supported Home Assistant on purpose.
+  # The oldest supported Home Assistant is pinned in the tests workflow on
+  # purpose, where Dependabot doesn't look.
   - package-ecosystem: pip
     directory: /
     schedule:

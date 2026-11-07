@@ -96,7 +96,7 @@ python3 -m venv .venv
 .venv/bin/pytest
 ```
 
-The tests cover every line and branch, against the latest Home Assistant and, in CI, against Home Assistant 2026.1 (`ci/requirements_min.txt`). `python script/brand.py` redraws the icons in `custom_components/cloudflare_turn/brand/`.
+The tests cover every line and branch, against the latest Home Assistant and, in CI, against Home Assistant 2026.1, the oldest supported version (pinned in `.github/workflows/tests.yml`). `python script/brand.py` redraws the icons in `custom_components/cloudflare_turn/brand/`.
 
 ## Disclaimer
 

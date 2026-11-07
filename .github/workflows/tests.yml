@@ -34,12 +34,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # The minimum in hacs.json, Home Assistant 2026.1. Pinned here rather
+          # than in a requirements file, so Dependabot leaves it alone.
           - name: oldest supported Home Assistant
             python: "3.13"
-            requirements: ci/requirements_min.txt
+            packages: pytest-homeassistant-custom-component==0.13.308
           - name: latest Home Assistant
             python: "3.14"
-            requirements: requirements_test.txt
+            packages: -r requirements_test.txt
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -48,6 +50,6 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: pip
-          cache-dependency-path: ${{ matrix.requirements }}
-      - run: pip install -r "${{ matrix.requirements }}"
+          cache-dependency-path: requirements_test.txt
+      - run: pip install ${{ matrix.packages }}
       - run: pytest
