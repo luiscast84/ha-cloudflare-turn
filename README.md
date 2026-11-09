@@ -1,6 +1,6 @@
 # Cloudflare TURN for Home Assistant
 
-[![Marketplace and HACS: custom repository](https://img.shields.io/badge/Marketplace%20%7C%20HACS-custom%20repository-41BDF5.svg)](https://www.home-assistant.io/integrations/marketplace)
+[![Marketplace and HACS: default store](https://img.shields.io/badge/Marketplace%20%7C%20HACS-default%20store-41BDF5.svg)](https://www.home-assistant.io/integrations/marketplace)
 [![Validate](https://github.com/luiscast84/ha-cloudflare-turn/actions/workflows/validate.yml/badge.svg)](https://github.com/luiscast84/ha-cloudflare-turn/actions/workflows/validate.yml)
 [![Tests](https://github.com/luiscast84/ha-cloudflare-turn/actions/workflows/tests.yml/badge.svg)](https://github.com/luiscast84/ha-cloudflare-turn/actions/workflows/tests.yml)
 
@@ -34,16 +34,15 @@ Cloudflare bills TURN only for data it relays to the clients, and only when the 
 
 ### Marketplace (Home Assistant 2026.11 and newer)
 
-Home Assistant 2026.11 built HACS in as the **Marketplace**.
+Home Assistant 2026.11 built HACS in as the **Marketplace**, and Cloudflare TURN is in its default store.
 
-1. Select the button above. Or open **Marketplace**, go to **Custom repositories**, and add `https://github.com/luiscast84/ha-cloudflare-turn` with the type **Integration**. The first time, the Marketplace asks you to read and accept its warning.
-2. Open **Cloudflare TURN** and select **Install**.
-3. Restart Home Assistant when Repairs shows **Restart required for Cloudflare TURN**.
+1. Select the button above, or open **Marketplace** and search for **Cloudflare TURN**. The first time, the Marketplace asks you to read and accept its warning.
+2. Select **Install**. If Repairs shows **Restart required for Cloudflare TURN**, restart Home Assistant.
 
 ### HACS (Home Assistant 2026.1 to 2026.10)
 
-1. Select the button above. Or open HACS, then **⋮ → Custom repositories**, and add `https://github.com/luiscast84/ha-cloudflare-turn` with the type **Integration**.
-2. Find **Cloudflare TURN** in HACS, download it, and restart Home Assistant.
+1. Select the button above, or open HACS and search for **Cloudflare TURN**.
+2. Download it and restart Home Assistant.
 
 ### Manually
 
