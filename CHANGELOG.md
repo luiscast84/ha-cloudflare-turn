@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1
+
+Documentation only. The integration's code is unchanged.
+
+- The README leads the install steps with the store search, now that Cloudflare TURN is in the Marketplace and HACS catalogs (hacs/default#13628). Adding the repository by link (Marketplace) or as a custom repository (HACS) stays as a fallback, as the HACS review suggested.
+- The README describes uninstalling through the Marketplace.
+
 ## 0.1.0
 
 First release.

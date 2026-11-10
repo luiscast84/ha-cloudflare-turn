@@ -1,6 +1,6 @@
 [project]
 name = "ha-cloudflare-turn"
-version = "0.1.0"
+version = "0.1.1"
 description = "Home Assistant integration that relays WebRTC camera streams through Cloudflare's TURN service, with self-renewing credentials."
 readme = "README.md"
 license = "Apache-2.0"
