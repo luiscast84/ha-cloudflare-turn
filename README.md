@@ -36,13 +36,20 @@ Cloudflare bills TURN only for data it relays to the clients, and only when the 
 
 Home Assistant 2026.11 built HACS in as the **Marketplace**, and Cloudflare TURN is in its default store.
 
-1. Select the button above, or open **Marketplace** and search for **Cloudflare TURN**. The first time, the Marketplace asks you to read and accept its warning.
+1. Select the button above, or go to **Settings → Marketplace** and search for **Cloudflare TURN**. The first time, the Marketplace asks you to read and accept its warning.
 2. Select **Install**. If Repairs shows **Restart required for Cloudflare TURN**, restart Home Assistant.
 
 ### HACS (Home Assistant 2026.1 to 2026.10)
 
 1. Select the button above, or open HACS and search for **Cloudflare TURN**.
 2. Download it and restart Home Assistant.
+
+### If the search doesn't find it
+
+Add the repository yourself, then install it as above:
+
+- **Marketplace:** go to **Settings → Marketplace**, select **Add from link**, enter `luiscast84/ha-cloudflare-turn`, and select **Add**. Adding a repository this way needs a GitHub connection; the Marketplace asks for it.
+- **HACS:** open **⋮ → Custom repositories**, and add `https://github.com/luiscast84/ha-cloudflare-turn` with the type **Integration**.
 
 ### Manually
 
@@ -93,7 +100,7 @@ Choose **Reconfigure** on the integration entry. To cut off access immediately (
 
 ## Removal
 
-**Settings → Devices & services → Cloudflare TURN → ⋮ → Delete**, then remove it in HACS. Delete the TURN key in the Cloudflare dashboard as well.
+**Settings → Devices & services → Cloudflare TURN → ⋮ → Delete**. Home Assistant then asks whether to uninstall it from the Marketplace; with HACS, remove it in HACS. Delete the TURN key in the Cloudflare dashboard as well.
 
 ## Development
 
